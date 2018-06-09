@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/Masterminds/sprig"
 	"github.com/tanmaybaranwal/BlogAppUsingMGO/datastructure"
 	"github.com/tanmaybaranwal/BlogAppUsingMGO/dbutilities"
 	"gopkg.in/mgo.v2"
@@ -68,11 +67,10 @@ func Home(w http.ResponseWriter, req *http.Request) {
 func View(w http.ResponseWriter, req *http.Request) {
 	// Gets the post title passed by the GET method
 	id := req.URL.Path[len("/view/"):]
-	fmt.Println(id)
 	// If the request method is GET and the title is not empty
 	if req.Method == "GET" && id != "" {
 		// Search in the database based on the title of the post
-		post := dbutilities.Find(c, bson.M{"_id": id})
+		post := dbutilities.Find(c, bson.M{"_id": bson.ObjectIdHex(id)})
 
 		// Creates an "object" of the Context structure
 		var context Context
@@ -153,6 +151,9 @@ func insertDummy() {
 	// posts := dbutilities.FindQuery(c, bson.M{"author": "tanmayb"}, []string{"-created_datetime"})
 
 }
+func hexToString(value bson.ObjectId) string {
+	return value.Hex()
+}
 
 /*
  *  Function used to render the pages
@@ -171,7 +172,10 @@ func render(w http.ResponseWriter, tmpl string, context Context) {
 	// }
 	// Applies a parsed template to the specified data object
 
-	t := template.Must(template.New(name).Funcs(sprig.FuncMap()).ParseFiles(tmplList...))
+	gfm := make(map[string]interface{}, 1)
+	gfm["hexToString"] = hexToString
+
+	t := template.Must(template.New(name).Funcs(template.FuncMap(gfm)).ParseFiles(tmplList...))
 	var err = t.Execute(w, context)
 	// If any error occurs, show it
 	if err != nil {
